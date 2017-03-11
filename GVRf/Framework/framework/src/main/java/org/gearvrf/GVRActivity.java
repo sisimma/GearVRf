@@ -100,7 +100,8 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
                     mDelegate = (GVRActivityDelegate) aClass.newInstance();
                     mAppSettings = mDelegate.makeVrAppSettings();
                     mDelegate.onCreate(this);
-
+                    mActivityNative = mDelegate.getActivityNative();
+                    handleOnDock();
                     break;
                 } catch (final Exception exc) {
                     mDelegate = null;
@@ -218,10 +219,13 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
             mDockEventReceiver.stop();
         }
 
+        handleOnUndock();
         if (null != mActivityNative) {
             mActivityNative.onDestroy();
+            Log.d(TAG, "onDestroy mActivityNative getNative=" + mActivityNative.getNative());
             mActivityNative = null;
         }
+
         super.onDestroy();
     }
 
@@ -242,8 +246,10 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
     public void setMain(GVRMain gvrMain, String dataFileName) {
         this.mGVRMain = gvrMain;
         if (getRequestedOrientation() == ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE) {
+            if(false == mDelegate.setMain(gvrMain, dataFileName)) {
+                return;
+            }
             onConfigure(dataFileName);
-            mDelegate.setMain(gvrMain, dataFileName);
 
             boolean isMonoscopicMode = mAppSettings.getMonoscopicModeParams().isMonoscopicMode();
             if (!isMonoscopicMode) {
@@ -256,7 +262,8 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
             if (mConfigurationManager.isDockListenerRequired()) {
                 startDockEventReceiver();
             } else {
-                handleOnDock();
+                //android.util.Log.w(TAG, "setMain calls handleOnDock decided by isDockListenerRequired");
+                //handleOnDock();
             }
 
             mViewManager.getEventManager().sendEventWithMask(
@@ -469,8 +476,9 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
 
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
         mDelegate.onConfigurationChanged(newConfig);
-
+        android.util.Log.d(TAG, "back to landscape orientation");
         if (mViewManager != null) {
             mViewManager.getEventManager().sendEventWithMask(
                     SEND_EVENT_MASK,
@@ -479,7 +487,6 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
                     "onConfigurationChanged", newConfig);
         }
 
-        super.onConfigurationChanged(newConfig);
     }
 
     @Override
@@ -577,7 +584,7 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
     private boolean mIsDocked = false;
 
     protected final void handleOnDock() {
-        Log.i(TAG, "handleOnDock");
+        Log.i(TAG, "handleOnDock mIsDocked=" + mIsDocked);
         final Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -598,7 +605,7 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
     }
 
     protected final void handleOnUndock() {
-        Log.i(TAG, "handleOnUndock");
+        Log.i(TAG, "handleOnUndock mIsDocked=" + mIsDocked);
         final Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -606,6 +613,7 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
                     mIsDocked = false;
 
                     if (null != mActivityNative) {
+                        Log.i(TAG, "handleOnUndock calls mActivityNative.onUndock");
                         mActivityNative.onUndock();
                     }
 
@@ -671,7 +679,7 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
         boolean onKeyUp(int keyCode, KeyEvent event);
         boolean onKeyLongPress(int keyCode, KeyEvent event);
 
-        void setMain(GVRMain gvrMain, String dataFileName);
+        boolean setMain(GVRMain gvrMain, String dataFileName);
         void setViewManager(GVRViewManager viewManager);
         void onInitAppSettings(VrAppSettings appSettings);
 
