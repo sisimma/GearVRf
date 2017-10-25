@@ -220,9 +220,9 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
             mDockEventReceiver.stop();
         }
 
-        if (null != mConfigurationManager && !mConfigurationManager.isDockListenerRequired()) {
+//        if (null != mConfigurationManager && !mConfigurationManager.isDockListenerRequired()) {
             handleOnUndock();
-        }
+//        }
 
         if (null != mActivityNative) {
             mActivityNative.onDestroy();
@@ -662,7 +662,10 @@ public class GVRActivity extends Activity implements IEventReceiver, IScriptable
                 }, new Runnable() {
                     @Override
                     public void run() {
-                        handleOnUndock();
+                        Log.i(TAG, "receiver calls finish instead of handleOnUndock");
+                        mViewManager.getActivity().finish();
+                        //Log.i(TAG, "receiver called handleOnUndock");
+                        //handleOnUndock();
                     }
                 });
         if (null != mDockEventReceiver) {
